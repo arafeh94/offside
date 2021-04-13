@@ -30,7 +30,7 @@ for i in range(Settings.NUMBER_OF_PLAYERS_PER_TEAM):
 for i in range(Settings.NUMBER_OF_PLAYERS_PER_TEAM, Settings.NUMBER_OF_PLAYERS_PER_TEAM * 2):
     player = Player(i, t2)
     for tag in Settings.PLAYERS_TAGS[i]:
-        player.add_tag(tag, Coordinates(0, 0, 0))
+        player.add_tag(tag, Coordinates(Protocol.FIELD.REAL_WIDTH/2, Protocol.FIELD.REAL_HEIGHT, 0))
 
 # initialize ball
 players = t1.players + t2.players
