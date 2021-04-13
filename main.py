@@ -75,7 +75,6 @@ detect_mis_located_players()
 
 def stream_handler(data):
     _data = StreamData(data[0], data[1], data[2], data[3] + (Protocol.FIELD.REAL_HEIGHT / 2), data[4], data[5], data[6])
-    print(data[0], data[1], data[2], data[3])
     global OFFSIDE
     global CAN_MOVE
     if _data.tag_id == Settings.BALL_TAG:
