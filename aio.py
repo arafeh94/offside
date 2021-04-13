@@ -194,7 +194,7 @@ class ShakeFilter(Pipe):
 
             result = tuple(return_data)
             self.set(tag_id, result)
-            return tuple(return_data)
+            return result
 
     def is_shaking(self, old_data, new_data):
         distance = utils.dist(old_data, new_data)
@@ -234,7 +234,9 @@ class SpeedDirectionPipe(Pipe):
             return_result = [x for x in data]
             return_result.append(speed)
             return_result.append(direction)
-            return tuple(return_result)
+            return_results = tuple(return_result)
+            self.set(tag_id, return_result)
+            return return_results
 
     # noinspection PyMethodMayBeStatic
     def speed(self, old, new):
@@ -243,6 +245,7 @@ class SpeedDirectionPipe(Pipe):
         old_point = [old[TagStreamParser.X], old[TagStreamParser.Y], old[TagStreamParser.Z]]
         new_point = [new[TagStreamParser.X], new[TagStreamParser.Y], new[TagStreamParser.Z]]
         distance = utils.dist(old_point, new_point)
+        print(old_point, new_point, distance)
         dif_time = (new_time - old_time).total_seconds()
         if dif_time > 0:
             speed = distance / dif_time
