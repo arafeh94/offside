@@ -64,10 +64,13 @@ class ComStreamSource(StreamSource):
         return self.reader.readline()
 
     def open(self):
-        self.reader.open()
+        pass
+        #self.reader.open()
+
 
     def close(self):
-        self.reader.close()
+        pass
+        #self.reader.close()
 
 
 class Pipe:
@@ -152,7 +155,7 @@ class TagStreamParser(Pipe):
             if len(line) < 5:
                 return None
             timestamp = time.time()
-            tag = int(line[2])
+            tag = str(line[2])
             x = float(line[3])
             y = float(line[4])
             z = float(line[5])

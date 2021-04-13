@@ -74,13 +74,14 @@ detect_mis_located_players()
 
 
 def stream_handler(data):
-    data = StreamData(data[0], data[1], data[2], data[3] + (Protocol.FIELD.REAL_HEIGHT / 2), data[4], data[5], data[6])
+    _data = StreamData(data[0], data[1], data[2], data[3] + (Protocol.FIELD.REAL_HEIGHT / 2), data[4], data[5], data[6])
+    print(data[0], data[1], data[2], data[3])
     global OFFSIDE
     global CAN_MOVE
-    if data.tag_id == Settings.BALL_TAG:
-        app.ball.set_projected_location(data.location.x, data.location.y)
+    if _data.tag_id == Settings.BALL_TAG:
+        app.ball.set_projected_location(_data.location.x, _data.location.y)
         detect_mis_located_players()
-        is_offside = ball.move_ball(data.location)
+        is_offside = ball.move_ball(_data.location)
         if is_offside and CAN_MOVE:
             CAN_MOVE = False
             ball.player_possessing.change_display()
@@ -92,15 +93,16 @@ def stream_handler(data):
     else:
         average_player_location = None
         for _p in players:
-            if _p.has_tag(data.tag_id):
-                _p.set_player_location_with_duplicate(data.tag_id, data.location)
+            if _p.has_tag(_data.tag_id):
+                _p.set_player_location_with_duplicate(_data.tag_id, _data.location)
                 average_player_location = _p.get_average_location()
                 _p.change_display()
                 # break
         for _p in app.players:
-            if _p.has_tag(data.tag_id):
+            if _p.has_tag(_data.tag_id):
                 _p.set_projected_location(average_player_location.x, average_player_location.y)
-                # break
+                print(average_player_location.x, average_player_location.y, average_player_location.z)
+                break
         detect_mis_located_players()
 
 
