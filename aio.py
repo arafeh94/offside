@@ -156,9 +156,6 @@ class TagStreamParser(Pipe):
                 return None
             timestamp = time.time()
             tag = str(line[2])
-            if tag == '4804':
-                print(1)
-                pass
             x = float(line[3])
             y = float(line[4])
             z = float(line[5])
@@ -251,7 +248,6 @@ class SpeedDirectionPipe(Pipe):
         old_point = [old[TagStreamParser.X], old[TagStreamParser.Y], old[TagStreamParser.Z]]
         new_point = [new[TagStreamParser.X], new[TagStreamParser.Y], new[TagStreamParser.Z]]
         distance = utils.dist(old_point, new_point)
-        print(old_point, new_point, distance)
         dif_time = (new_time - old_time).total_seconds()
         if dif_time > 0:
             speed = distance / dif_time
