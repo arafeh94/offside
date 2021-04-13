@@ -4,11 +4,11 @@ def dist(point1, point2):
             ((point1[2] - point2[2]) ** 2)) ** 0.5
 
 
-def tuple_to_csv(tuple):
+def tuple_to_csv(_tuple):
     string = ""
-    for item in tuple:
+    for item in _tuple:
         string += str(item) + ","
-    return string.rstrip(",") + "\n"
+    return string.rstrip(",")
 
 
 def eof_remover(string: str):

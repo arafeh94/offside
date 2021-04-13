@@ -75,6 +75,10 @@ detect_mis_located_players()
 
 def stream_handler(data):
     _data = StreamData(data[0], data[1], data[2], data[3] + (Protocol.FIELD.REAL_HEIGHT / 2), data[4], data[5], data[6])
+    print('*********************************',data[0], data[1], data[2], data[3])
+    if data[1] == '4804':
+        print(1)
+        pass
     global OFFSIDE
     global CAN_MOVE
     if _data.tag_id == Settings.BALL_TAG:
@@ -96,11 +100,12 @@ def stream_handler(data):
                 _p.set_player_location_with_duplicate(_data.tag_id, _data.location)
                 average_player_location = _p.get_average_location()
                 _p.change_display()
-                # break
+                print(_p.player_id)
+                break
         for _p in app.players:
             if _p.has_tag(_data.tag_id):
                 _p.set_projected_location(average_player_location.x, average_player_location.y)
-                print(average_player_location.x, average_player_location.y, average_player_location.z)
+                print(_p.id)
                 break
         detect_mis_located_players()
 
@@ -114,7 +119,7 @@ file_date = datetime.now().strftime("%b-%d-%Y_%H-%M-%S")
 stream_source = FileStreamSource(Settings.FILE_PATH) if Settings.IS_READ_FROM_FILE else ComStreamSource(
     Settings.COM_PORT_TAG_READER, Settings.COM_SETTINGS)
 streamers = Streamer(stream_source)
-# streamers.add_pipe(ConsoleOutPipe())
+streamers.add_pipe(ConsoleOutPipe())
 if Settings.IS_READ_FROM_FILE:
     streamers.add_pipe(FrequencyControlPipe(Settings.READING_FREQUENCY))
 else:

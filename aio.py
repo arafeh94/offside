@@ -156,6 +156,9 @@ class TagStreamParser(Pipe):
                 return None
             timestamp = time.time()
             tag = str(line[2])
+            if tag == '4804':
+                print(1)
+                pass
             x = float(line[3])
             y = float(line[4])
             z = float(line[5])
@@ -280,7 +283,7 @@ class FileSaverPipe(Pipe):
     def write(self, params):
         if self.map is not None:
             params = self.map(params)
-        writings = str(params)
+        writings = str(params) + '\n'
         self.writer.write(writings)
 
     def on_close(self):

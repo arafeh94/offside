@@ -105,7 +105,7 @@ class Player:
 
     def has_tag(self, tag):
         for t in self.tags:
-            if t == tag:
+            if str(t) == tag:
                 return True
         return False
 
