@@ -45,8 +45,11 @@ class FileStreamSource(StreamSource):
     def __init__(self, file_path: str):
         self.file_path = file_path
         self.reader = None
+        self.row = 0
 
     def read_line(self):
+        print(self.row)
+        self.row += 1
         return self.reader.readline()
 
     def open(self):
@@ -65,12 +68,11 @@ class ComStreamSource(StreamSource):
 
     def open(self):
         pass
-        #self.reader.open()
-
+        # self.reader.open()
 
     def close(self):
         pass
-        #self.reader.close()
+        # self.reader.close()
 
 
 class Pipe:
@@ -207,6 +209,7 @@ class ShakeFilter(Pipe):
 class SpeedDirectionPipe(Pipe):
     SPEED = 5
     DIRECTION = 6
+    ACCELERATION = 7
 
     def __init__(self):
         self.dict = {}
@@ -226,6 +229,7 @@ class SpeedDirectionPipe(Pipe):
             data = [x for x in data]
             data.append(0)
             data.append(0)
+            data.append(0)
             return_result = tuple(data)
             self.set(tag_id, return_result)
             return return_result
@@ -234,9 +238,11 @@ class SpeedDirectionPipe(Pipe):
             old_data = self.get(tag_id)
             speed = self.speed(old_data, new_data)
             direction = self.direction(old_data, new_data)
+            acc = self.acceleration(old_data, new_data, speed)
             return_result = [x for x in data]
             return_result.append(speed)
             return_result.append(direction)
+            return_result.append(acc)
             return_results = tuple(return_result)
             self.set(tag_id, return_result)
             return return_results
@@ -261,6 +267,18 @@ class SpeedDirectionPipe(Pipe):
         y = new[TagStreamParser.Y] - old[TagStreamParser.Y]
         direction = math.atan2(y, x)
         return direction
+
+    # noinspection PyMethodMayBeStatic
+    def acceleration(self, old, new, new_speed):
+        old_time = datetime.fromtimestamp(old[TagStreamParser.TIMESTAMP])
+        new_time = datetime.fromtimestamp(new[TagStreamParser.TIMESTAMP])
+        old_speed = old[SpeedDirectionPipe.SPEED]
+        dif_time = (new_time - old_time).total_seconds()
+        try:
+            acceleration = (new_speed - old_speed) / dif_time
+            return acceleration
+        except ZeroDivisionError:
+            return 0
 
 
 class FileSaverPipe(Pipe):

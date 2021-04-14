@@ -27,10 +27,10 @@ class Team:
 
     def get_second_last_defendant(self):
         sorted_defendants = sorted(self.players, key=lambda x: x.get_back_location(self.side).y, reverse=False)
-        if self.side == Protocol.SIDE_HOME:
-            return sorted_defendants[1]
-        else:
+        if self.side == Protocol.SIDE_TOP:
             return sorted_defendants[-2]
+        else:
+            return sorted_defendants[1]
 
     def set_offside_attribute(self, team_2):
         second_last_def = team_2.get_second_last_defendant()

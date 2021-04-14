@@ -13,3 +13,11 @@ def tuple_to_csv(_tuple):
 
 def eof_remover(string: str):
     return string.rstrip("\n").rstrip("\r")
+
+
+def first(dictionary):
+    return list(dictionary.values())[0]
+
+
+def as_list(dictionary):
+    return list(dictionary.values())

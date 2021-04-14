@@ -1,16 +1,15 @@
+import math
+import random
 import tkinter
-from random import randint
-from time import sleep
+from abc import abstractmethod
 from tkinter import *
-from tkinter.ttk import *
 from typing import List
-
 from PIL import ImageTk, Image
 
-from Coordinates import Coordinates
-from DataGenerator import StreamData
+import utils
 from Protocol import Protocol
 import Settings
+from logic import Tag
 
 
 class Util:
@@ -20,29 +19,18 @@ class Util:
 
 
 class Component:
-    BALL_TAG = 0
-    PLAYER_TAGS_START = 1
-    PLAYER_TAGS_COUNT = 4
-
-    def __init__(self, id, src, x, y, type, color="black"):
+    def __init__(self, cid, x, y, ctag=None):
         self.ctx = Application.instance().ctx
-        self.id = id
-        self.src = ImageTk.PhotoImage(Image.open(src))
+        self.cid = cid
         self.x = x
         self.y = y
-        self.color = color
-        self.type = type
+        self.ctag = ctag
         self.events = {}
         self.component = None
 
+    @abstractmethod
     def draw(self):
-        if self.id == Settings.BALL_TAG:
-            self.component = self.ctx.create_image(self.x, self.y, anchor=tkinter.NW, image=self.src)
-        else:
-            self.component = self.ctx.create_text(self.x, self.y, anchor=tkinter.NW, text=str(self.id), fill=self.color, font=("Helvetica", 16))
-
-    def change_text(self, text):
-        self.ctx.itemconfigure(self.component, text=text)
+        pass
 
     def loc(self):
         return self.ctx.coords(self.component)
@@ -77,87 +65,104 @@ class Component:
             callback(params)
 
 
-class Player(Component):
-    EVENT_PLAYER_MOVE = "EVENT_PLAYER_MOVE"
-    EVENT_PLAYER_SHOOT = "EVENT_PLAYER_SHOOT"
+class TextComponent(Component):
 
-    def __init__(self, id, team, x, y, color="white", tags=None, has_control=False, speed=20):
-        super(Player, self).__init__(id, "assets/home.png" if team == 0 else "assets/visitor.png", x, y, 'player', color)
-        if tags is None:
-            tags = []
-        self.has_control = has_control
-        self.speed_x = 0
-        self.speed_y = 0
-        self.speed = speed
-        self.tags = tags
+    def __init__(self, cid, content, color, x, y, font=("Helvetica", 16), ctag=None):
+        super().__init__(cid, x, y, ctag)
+        self.content = str(content)
+        self.color = color
+        self.font = font
 
-    def has_tag(self, tag):
-        for t in self.tags:
-            if t == tag:
-                return True
+    def draw(self):
+        self.component = self.ctx.create_text(self.x, self.y, anchor=tkinter.NW,
+                                              text=self.content, fill=self.color, font=self.font)
+
+    def change_text(self, content):
+        self.ctx.itemconfigure(self.component, text=content)
+
+
+class ImageComponent(Component):
+    def __init__(self, cid, src, x, y, ctag=None):
+        super().__init__(cid, x, y, ctag)
+        self.src = ImageTk.PhotoImage(Image.open(src))
+
+    def draw(self):
+        self.component = self.ctx.create_image(self.x, self.y, anchor=tkinter.NW, image=self.src)
+
+
+class Player(TextComponent):
+    colors = ['black', 'silver', 'pink', 'cyan', 'grey', 'orange']
+
+    def __init__(self, cid: str, logic_player):
+        super(Player, self). \
+            __init__(cid, cid, logic_player.team.color,
+                     utils.first(logic_player.tags).location.x, utils.first(logic_player.tags).location.y,
+                     font=("Helvetica", 23), ctag='Player')
+        self.logic_player = logic_player
+        self.tags_component = [
+            TextComponent(tag.tag_id, '.', Player.colors[index], 0, 0, ctag='Tag',
+                          font=("Helvetica", 16))
+            for index, tag in enumerate(utils.as_list(logic_player.tags))
+        ]
+        self.info = TextComponent(str(cid) + "_info", "", "white", 0, 0, font=("Helvetica", 6))
+
+    def draw(self):
+        super(Player, self).draw()
+        [t.draw() for t in self.tags_component]
+        self.info.draw()
+
+    def get_tag_component(self, tag: Tag):
+        for ctag in self.tags_component:
+            if tag.tag_id == ctag.cid:
+                return ctag
+        return None
+
+    def set_tag_location(self, tag: Tag, use_projected_location=True):
+        tag_component = self.get_tag_component(tag)
+        if tag_component is not None:
+            if use_projected_location:
+                tag_component.set_projected_location(tag.location.x, tag.location.y)
+            else:
+                tag_component.set_location(tag.location.x, tag.location.y)
+            self.update_location()
+            self.update_player_info()
+            return True
         return False
 
-    def set_control(self, has_control):
-        self.has_control = has_control
+    def update_location(self):
+        tags_x = [c.x for c in self.tags_component]
+        tags_y = [c.y for c in self.tags_component]
+        loc_x = math.fsum(tags_x) / len(tags_x)
+        loc_y = math.fsum(tags_y) / len(tags_y)
+        self.set_location(loc_x, loc_y)
 
-    def key_move(self, key):
-        if self.has_control:
-            if key == 'down':
-                self.speed_x = 0
-                self.speed_y = self.speed
-            elif key == 'up':
-                self.speed_x = 0
-                self.speed_y = -self.speed
-            elif key == 'left':
-                self.speed_x = -self.speed
-                self.speed_y = 0
-            elif key == 'right':
-                self.speed_x = self.speed
-                self.speed_y = 0
-
-            self.ctx.move(self.component, self.speed_x, self.speed_y)
-            self.broadcast(Player.EVENT_PLAYER_MOVE, self)
-
-    def shoot(self, event, tag):
-        self.broadcast(Player.EVENT_PLAYER_SHOOT, self)
+    def update_player_info(self):
+        if Settings.STATS_FOR_NERDS:
+            text = str(round(self.logic_player.speed(), Settings.ROUND_NUMBER)) + "\n" + \
+                   str(round(self.logic_player.direction(), Settings.ROUND_NUMBER)) + "\n" + \
+                   str(round(self.logic_player.acceleration(), Settings.ROUND_NUMBER))
+            location = self.loc()
+            self.info.change_text(text)
+            self.info.set_location(location[0] + 20, location[1])
 
 
-# noinspection PyTypeChecker
-class Ball(Component):
-    LOCATION_MODIFIER_X = 0
-    LOCATION_MODIFIER_Y = 20
-    EVENT_BALL_MOVED = 'EVENT_BALL_MOVED'
-    EVENT_BALL_SHOOT = 'EVENT_BALL_SHOOT'
+class Ball(ImageComponent):
+    def __init__(self, cid, x, y):
+        super(Ball, self).__init__(cid, "assets/ball.png", x, y, 'Ball')
+        self.info = TextComponent("ball_info", "", "white", 0, 0, font=("Helvetica", 6))
 
-    def __init__(self,id,x,y):
-        super(Ball, self).__init__(id, "assets/ball.png", x, y, 'ball')
-        self.attached: Player = None
+    def draw(self):
+        super(Ball, self).draw()
+        self.info.draw()
 
-    def attach(self, player: Player):
-        if self.attached is not None:
-            self.attached.set_control(False)
-        self.attached = player
-        self.attached.set_control(True)
-        # first half movement
-        midpoint = Util.midpoint(player.loc()[0], player.loc()[1], self.loc()[0], self.loc()[1])
-        self.set_location(midpoint[0] + Ball.LOCATION_MODIFIER_X, midpoint[1] + Ball.LOCATION_MODIFIER_Y)
-        self.broadcast(Ball.EVENT_BALL_SHOOT, self)
-
-        # complete movement
-        self.set_location(player.loc()[0] + Ball.LOCATION_MODIFIER_X, player.loc()[1] + Ball.LOCATION_MODIFIER_Y)
-        self.broadcast(Ball.EVENT_BALL_SHOOT, self)
-
-        # attach ball to player
-        self.attached.register_event(Player.EVENT_PLAYER_MOVE, 'ball_move', self.event_player_moved)
-
-    def event_player_moved(self, player: Player):
-        self.set_location(player.loc()[0] + Ball.LOCATION_MODIFIER_X, player.loc()[1] + Ball.LOCATION_MODIFIER_Y)
-        self.broadcast(Ball.EVENT_BALL_MOVED, self)
-
-    def shoot(self):
-        self.ctx.move(self.component, 0, 150)
-        self.broadcast(Ball.EVENT_BALL_SHOOT, self)
-        self.broadcast(Ball.EVENT_BALL_MOVED, self)
+    def update_info(self, tag: Tag):
+        if Settings.STATS_FOR_NERDS:
+            text = str(round(tag.speed, Settings.ROUND_NUMBER)) + "\n" + \
+                   str(round(tag.direction, Settings.ROUND_NUMBER)) + "\n" + \
+                   str(round(tag.acceleration, Settings.ROUND_NUMBER))
+            location = self.loc()
+            self.info.change_text(text)
+            self.info.set_location(location[0] + 20, location[1] - 10)
 
 
 # noinspection PyTypeChecker
@@ -172,14 +177,22 @@ class Application:
 
     def __init__(self):
         self.root = tkinter.Tk()
-        self.ctx = tkinter.Canvas(self.root, bg="white", height=Protocol.FIELD.HEIGHT+Protocol.FIELD.Y_START*2,
-                                  width=Protocol.FIELD.WIDTH+Protocol.FIELD.X_START*2)
+        self.ctx = tkinter.Canvas(self.root, bg="white", height=Protocol.FIELD.HEIGHT + Protocol.FIELD.Y_START * 2,
+                                  width=Protocol.FIELD.WIDTH + Protocol.FIELD.X_START * 2)
         self.players: List[Player] = []
         self.ball: Ball = None
-        # self.can_move: bool = True
 
     def draw_pitch(self, image):
         self.ctx.create_image(0, 0, anchor=tkinter.NW, image=image)
+
+    @staticmethod
+    def rescale_map():
+        Protocol.FIELD.WIDTH *= Settings.SCALE_MAP
+        Protocol.FIELD.HEIGHT *= Settings.SCALE_MAP
+        Protocol.FIELD.X_START *= Settings.SCALE_MAP
+        Protocol.FIELD.Y_START *= Settings.SCALE_MAP
+        Protocol.FIELD.SCALE_Y *= Settings.SCALE_MAP
+        Protocol.FIELD.SCALE_X *= Settings.SCALE_MAP
 
     def add_player(self, player: Player):
         self.players.append(player)
@@ -197,8 +210,12 @@ class Application:
             player.set_projected_location(player.x, player.y)
         self.ball.set_projected_location(self.ball.x, self.ball.y)
 
+    def place_tag(self, tag: Tag, use_projected_location=True):
+        for player in self.players:
+            if player.set_tag_location(tag, use_projected_location):
+                return True
+        return False
+
     def loop(self):
-        # self.bind_movement_keys()
-        # self.bind_number_keys()
         self.ctx.pack()
         self.root.mainloop()

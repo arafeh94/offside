@@ -16,8 +16,8 @@ class Protocol:
         PITCH_PNG = "assets/pitch.png"
 
     # Teams sides
-    SIDE_HOME = 0
-    SIDE_AWAY = 1
+    SIDE_TOP = 0
+    SIDE_BOT = 1
 
 
 

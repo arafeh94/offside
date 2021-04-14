@@ -5,32 +5,33 @@ from time import sleep
 
 from PIL import ImageTk, Image
 import gui
-from Ball import Ball
 from Coordinates import Coordinates
-from DataGenerator import DataGenerator, StreamData
 from Player import Player
 from Protocol import Protocol
 from Team import Team
 from aio import *
+from Ball import Ball
+from logic import Tag
 
 OFFSIDE = None
 CAN_MOVE = True
 
+gui.Application.rescale_map()
 # initialize teams
-t1 = Team('Team Blue', 'blue', Protocol.SIDE_HOME)
-t2 = Team('Team Red', 'red', Protocol.SIDE_AWAY)
+t2 = Team('Team Blue', 'blue', Protocol.SIDE_TOP)
+t1 = Team('Team Red', 'red', Protocol.SIDE_BOT)
 
 # initialize players team 1
 for i in range(Settings.NUMBER_OF_PLAYERS_PER_TEAM):
     player = Player(i, t1)
     for tag in Settings.PLAYERS_TAGS[i]:
-        player.add_tag(tag, Coordinates(0, 0, 0))
+        player.init_tag(Tag(tag))
 
 # initialize players team 2
 for i in range(Settings.NUMBER_OF_PLAYERS_PER_TEAM, Settings.NUMBER_OF_PLAYERS_PER_TEAM * 2):
     player = Player(i, t2)
     for tag in Settings.PLAYERS_TAGS[i]:
-        player.add_tag(tag, Coordinates(Protocol.FIELD.REAL_WIDTH/2, Protocol.FIELD.REAL_HEIGHT, 0))
+        player.init_tag(Tag(tag, Coordinates(Protocol.FIELD.REAL_WIDTH / 2, Protocol.FIELD.REAL_HEIGHT, 0)))
 
 # initialize ball
 players = t1.players + t2.players
@@ -38,12 +39,14 @@ ball = Ball(Coordinates(0, 0, 0), players)
 
 # initialize UI
 app = gui.Application.instance()
-image = ImageTk.PhotoImage(Image.open(Protocol.FIELD.PITCH_PNG))
+
+img = Image.open(Protocol.FIELD.PITCH_PNG)
+img = img.resize((int(img.width * Settings.SCALE_MAP), int(img.height * Settings.SCALE_MAP)), Image.ANTIALIAS)
+image = ImageTk.PhotoImage(img)
 app.draw_pitch(image)
 
 for player in players:
-    gui_player = gui.Player(player.player_id, player.team.side, player.locations[0].x, player.locations[0].y,
-                            player.team.color, player.tags)
+    gui_player = gui.Player(player.player_id, player)
     player.set_player_gui(gui_player)
     app.add_player(gui_player)
 
@@ -68,19 +71,23 @@ def reset():
 
 
 for _player in players:
-    print('player', _player.player_id, 'placed', [_player.locations[0].x, _player.locations[0].y])
+    print('player', _player.player_id, 'placed',
+          [_player.get_player_locations()[0].x, _player.get_player_locations()[0].y])
 
 detect_mis_located_players()
 
 
 def stream_handler(data):
-    _data = StreamData(data[0], data[1], data[2], data[3] + (Protocol.FIELD.REAL_HEIGHT / 2), data[4], data[5], data[6])
+    received_tag = Tag(data[1], data[0], Coordinates(data[2], data[3] + (Protocol.FIELD.REAL_HEIGHT / 2), data[4]),
+                       data[5], data[6],
+                       data[7])
     global OFFSIDE
     global CAN_MOVE
-    if _data.tag_id == Settings.BALL_TAG:
-        app.ball.set_projected_location(_data.location.x, _data.location.y)
+    if received_tag.tag_id == Settings.BALL_TAG:
+        app.ball.set_projected_location(received_tag.location.x, received_tag.location.y)
+        app.ball.update_info(received_tag)
         detect_mis_located_players()
-        is_offside = ball.move_ball(_data.location)
+        is_offside = ball.move_ball(received_tag.location)
         if is_offside and CAN_MOVE:
             CAN_MOVE = False
             ball.player_possessing.change_display()
@@ -90,17 +97,20 @@ def stream_handler(data):
             start_time = threading.Timer(2, reset)
             start_time.start()
     else:
-        average_player_location = None
         for _p in players:
-            if _p.has_tag(_data.tag_id):
-                _p.set_player_location_with_duplicate(_data.tag_id, _data.location)
-                average_player_location = _p.get_average_location()
+            if _p.set_tag(received_tag):
                 _p.change_display()
                 break
-        for _p in app.players:
-            if _p.has_tag(_data.tag_id):
-                _p.set_projected_location(average_player_location.x, average_player_location.y)
-                break
+        app.place_tag(received_tag)
+
+        # dummy 4th player
+        players[-1].set_tag(Tag(utils.as_list(players[-1].tags)[0].tag_id, 0,
+                                Coordinates(Protocol.FIELD.REAL_WIDTH / 2, Protocol.FIELD.REAL_HEIGHT, 0)))
+        app.place_tag(Tag(utils.as_list(players[-1].tags)[0].tag_id, 0,
+                          Coordinates(Protocol.FIELD.REAL_WIDTH / 2, Protocol.FIELD.REAL_HEIGHT, 0)))
+        # app.place_tag(Tag(utils.as_list(players[-1].tags)[1].tag_id, 0,
+        #                   Coordinates(Protocol.FIELD.REAL_WIDTH / 2, Protocol.FIELD.REAL_HEIGHT, 0)))
+        players[-1].change_display()
         detect_mis_located_players()
 
 
