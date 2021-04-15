@@ -47,10 +47,10 @@ class Ball:
                 closest_distance = distance
 
         if closest_player is not None:
-            print(closest_player.player_id, ' is the closest to the ball')
+            # print(closest_player.player_id, ' is the closest to the ball')
             return self.set_player_possession(closest_player)
         else:
-            print('no one has ball')
+            # print('no one has ball')
             return self.set_player_possession()
 
     def reset_defendant_sensitivity_for_all_players(self):
@@ -83,9 +83,9 @@ class Ball:
         if player.team is not self.player_possessing.team:
             if player.acquires_ball():
                 self.player_possessing.team.can_be_offside(False)
-                print(player.player_id, ' is NOW BALLLLLLLYYY')
+                # print(player.player_id, ' is NOW BALLLLLLLYYY')
             else:
-                print('wait for it')
+                # print('wait for it')
                 return False
 
         self.reset_defendant_sensitivity_for_all_players()

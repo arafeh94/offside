@@ -15,6 +15,13 @@ class Team:
     def add_player(self, player):
         self.players.append(player)
 
+    @staticmethod
+    def get_opponent(team):
+        if team == Protocol.SIDE_TOP:
+            return Protocol.SIDE_BOT
+        else:
+            return Protocol.SIDE_TOP
+
     def possessing_ball(self):
         for x in self.players:
             if x.is_possessing_ball:

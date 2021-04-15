@@ -1,5 +1,4 @@
 class Protocol:
-
     class FIELD:
         REAL_WIDTH = 4.34
         REAL_HEIGHT = 3.56
@@ -18,6 +17,3 @@ class Protocol:
     # Teams sides
     SIDE_TOP = 0
     SIDE_BOT = 1
-
-
-

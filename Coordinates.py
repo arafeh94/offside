@@ -19,10 +19,10 @@ class Coordinates:
         min_distance = math.inf
         for tag in player.get_player_locations():
             distance = self.get_distance(tag)
-            print(player.player_id, ' - ', distance)
+            # print(player.player_id, ' - ', distance)
             if distance < min_distance:
                 min_distance = distance
-        print(min_distance)
+        # print(min_distance)
         return min_distance
 
     @staticmethod

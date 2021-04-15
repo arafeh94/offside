@@ -2,8 +2,10 @@ import math
 import random
 import tkinter
 from abc import abstractmethod
+from threading import Thread
 from tkinter import *
-from typing import List
+from tkinter import ttk
+from typing import List, NewType
 from PIL import ImageTk, Image
 
 import utils
@@ -219,3 +221,4 @@ class Application:
     def loop(self):
         self.ctx.pack()
         self.root.mainloop()
+

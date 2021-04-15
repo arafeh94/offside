@@ -1,3 +1,6 @@
+import Settings
+
+
 def dist(point1, point2):
     return (((point1[0] - point2[0]) ** 2) +
             ((point1[1] - point2[1]) ** 2) +
@@ -21,3 +24,13 @@ def first(dictionary):
 
 def as_list(dictionary):
     return list(dictionary.values())
+
+
+def tag_to_player_id(tag):
+    if tag == Settings.BALL_TAG:
+        return "00"
+    else:
+        for index, settings_tag in enumerate(Settings.PLAYERS_TAGS):
+            if tag in settings_tag:
+                return "0" + str(index + 1)
+    return "Nan"

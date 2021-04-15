@@ -48,7 +48,7 @@ class FileStreamSource(StreamSource):
         self.row = 0
 
     def read_line(self):
-        print(self.row)
+        # print(self.row)
         self.row += 1
         return self.reader.readline()
 
@@ -168,6 +168,51 @@ class TagStreamParser(Pipe):
             return None
 
 
+class MovementFilterPipe(Pipe):
+    RESET_TICK_COUNTER = 10
+
+    def __init__(self):
+        self.dict = {}
+        self.tag_counter = {}
+
+    def get(self, tag_id):
+        if tag_id not in self.dict:
+            self.dict[tag_id] = None
+        return self.dict[tag_id]
+
+    def get_tag_counter(self, tag_id):
+        if tag_id not in self.tag_counter:
+            self.tag_counter[tag_id] = self.RESET_TICK_COUNTER
+        return self.tag_counter[tag_id]
+
+    def tick(self, tag_id):
+        counter = self.get_tag_counter(tag_id)
+        if counter == 0:
+            return True
+        else:
+            self.tag_counter[tag_id] = counter - 1
+            return False
+
+    def reset_tag_counter(self, tag_id):
+        self.tag_counter[tag_id] = self.RESET_TICK_COUNTER
+
+    def set(self, tag_id, data):
+        self.dict[tag_id] = data
+
+    def next(self, data) -> object:
+        new = data
+        old = self.get(tag_id=data[TagStreamParser.TAG])
+        tag_id = data[TagStreamParser.TAG]
+        if old is not None and new[TagStreamParser.X] == old[TagStreamParser.X] and \
+                new[TagStreamParser.Y] == old[TagStreamParser.Y] and \
+                new[TagStreamParser.Z] == old[TagStreamParser.Z]:
+            if not self.tick(tag_id):
+                return None
+        self.reset_tag_counter(tag_id)
+        self.set(data[TagStreamParser.TAG], new)
+        return data
+
+
 class ShakeFilter(Pipe):
     def __init__(self, margin=0.035):
         self.dict = {}
@@ -249,12 +294,12 @@ class SpeedDirectionPipe(Pipe):
 
     # noinspection PyMethodMayBeStatic
     def speed(self, old, new):
-        old_time = datetime.fromtimestamp(old[TagStreamParser.TIMESTAMP])
-        new_time = datetime.fromtimestamp(new[TagStreamParser.TIMESTAMP])
+        old_time = old[TagStreamParser.TIMESTAMP]
+        new_time = new[TagStreamParser.TIMESTAMP]
         old_point = [old[TagStreamParser.X], old[TagStreamParser.Y], old[TagStreamParser.Z]]
         new_point = [new[TagStreamParser.X], new[TagStreamParser.Y], new[TagStreamParser.Z]]
         distance = utils.dist(old_point, new_point)
-        dif_time = (new_time - old_time).total_seconds()
+        dif_time = new_time - old_time
         if dif_time > 0:
             speed = distance / dif_time
         else:
@@ -270,10 +315,10 @@ class SpeedDirectionPipe(Pipe):
 
     # noinspection PyMethodMayBeStatic
     def acceleration(self, old, new, new_speed):
-        old_time = datetime.fromtimestamp(old[TagStreamParser.TIMESTAMP])
-        new_time = datetime.fromtimestamp(new[TagStreamParser.TIMESTAMP])
+        old_time = old[TagStreamParser.TIMESTAMP]
+        new_time = new[TagStreamParser.TIMESTAMP]
         old_speed = old[SpeedDirectionPipe.SPEED]
-        dif_time = (new_time - old_time).total_seconds()
+        dif_time = new_time - old_time
         try:
             acceleration = (new_speed - old_speed) / dif_time
             return acceleration

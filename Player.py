@@ -24,7 +24,7 @@ class Player:
 
     def acquires_ball(self):
         self.ball_touch_sensitivity_in_case_defending -= 1
-        print(self.player_id, ' SENSITIVITY ***************** ', self.ball_touch_sensitivity_in_case_defending)
+        # print(self.player_id, ' SENSITIVITY ***************** ', self.ball_touch_sensitivity_in_case_defending)
         return self.ball_touch_sensitivity_in_case_defending <= 0
 
     def reset_defendant_sensitivity(self):
@@ -69,7 +69,8 @@ class Player:
     def set_is_in_offside_position(self, value):
         self.is_in_offside_position = value
         if self.is_in_offside_position:
-            print(str(self.player_id) + ' is exposed to a potential offside')
+            pass
+            # print(str(self.player_id) + ' is exposed to a potential offside')
 
     def set_is_offside_alert(self, value):
         self.is_offside_alert = value
@@ -134,13 +135,16 @@ class Player:
         return self.team.side == player.team.side
 
     def offside_player_alert(self):
-        print(str(self.player_id) + ' is offside!!')
+        pass
+        # print(str(self.player_id) + ' is offside!!')
 
     def is_ahead_of(self, player2):
         if self.team.side == Protocol.SIDE_TOP:
-            return self.get_front_location(self.team.side).y < player2.get_front_location(self.team.side).y
+            return self.get_front_location(Team.get_opponent(self.team.side)).y < player2.get_front_location(
+                Team.get_opponent(self.team.side)).y
         else:
-            return self.get_front_location(self.team.side).y > player2.get_front_location(self.team.side).y
+            return self.get_front_location(Team.get_opponent(self.team.side)).y > player2.get_front_location(
+                Team.get_opponent(self.team.side)).y
 
     def get_front_location(self, towards_side):
         sorted_locations = sorted(self.get_player_locations(), key=lambda loc: loc.y, reverse=True)

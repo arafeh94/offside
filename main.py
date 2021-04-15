@@ -5,6 +5,7 @@ from time import sleep
 
 from PIL import ImageTk, Image
 import gui
+import table
 from Coordinates import Coordinates
 from Player import Player
 from Protocol import Protocol
@@ -12,6 +13,7 @@ from Team import Team
 from aio import *
 from Ball import Ball
 from logic import Tag
+from pipes import PlayerFileSaverPipe
 
 OFFSIDE = None
 CAN_MOVE = True
@@ -70,9 +72,9 @@ def reset():
     CAN_MOVE = True
 
 
-for _player in players:
-    print('player', _player.player_id, 'placed',
-          [_player.get_player_locations()[0].x, _player.get_player_locations()[0].y])
+# for _player in players:
+#     print('player', _player.player_id, 'placed',
+#           [_player.get_player_locations()[0].x, _player.get_player_locations()[0].y])
 
 detect_mis_located_players()
 
@@ -108,6 +110,10 @@ def stream_handler(data):
                                 Coordinates(Protocol.FIELD.REAL_WIDTH / 2, Protocol.FIELD.REAL_HEIGHT, 0)))
         app.place_tag(Tag(utils.as_list(players[-1].tags)[0].tag_id, 0,
                           Coordinates(Protocol.FIELD.REAL_WIDTH / 2, Protocol.FIELD.REAL_HEIGHT, 0)))
+        players[-1].set_tag(Tag(utils.as_list(players[-1].tags)[1].tag_id, 0,
+                                Coordinates(Protocol.FIELD.REAL_WIDTH / 2, Protocol.FIELD.REAL_HEIGHT, 0)))
+        app.place_tag(Tag(utils.as_list(players[-1].tags)[1].tag_id, 0,
+                          Coordinates(Protocol.FIELD.REAL_WIDTH / 2, Protocol.FIELD.REAL_HEIGHT, 0)))
         # app.place_tag(Tag(utils.as_list(players[-1].tags)[1].tag_id, 0,
         #                   Coordinates(Protocol.FIELD.REAL_WIDTH / 2, Protocol.FIELD.REAL_HEIGHT, 0)))
         players[-1].change_display()
@@ -117,6 +123,10 @@ def stream_handler(data):
 # # start thread generating data and wait for it to end
 # dg = DataGenerator(stream_handler, Settings.IS_READ_FROM_FILE, Settings.FILE_PATH)
 # dg.start()
+
+
+def console_table_printer(data):
+    table.update_table(players, ball)
 
 
 file_date = datetime.now().strftime("%b-%d-%Y_%H-%M-%S")
@@ -130,9 +140,12 @@ else:
     streamers.add_pipe(FileSaverPipe("logs/Raw-" + file_date + ".txt"))
 streamers.add_pipe(TagStreamParser())
 streamers.add_pipe(ShakeFilter(Settings.SHAKE_FILTER_MARGIN))
+streamers.add_pipe(MovementFilterPipe())
 streamers.add_pipe(SpeedDirectionPipe())
 streamers.add_pipe(FileSaverPipe("logs/Parsed-" + file_date + ".txt", map=utils.tuple_to_csv))
+streamers.add_pipe(PlayerFileSaverPipe("plogs/" + file_date))
 streamers.add_pipe(HandlerPipe(stream_handler))
+streamers.add_pipe(HandlerPipe(console_table_printer))
 streamers.start()
 
 
