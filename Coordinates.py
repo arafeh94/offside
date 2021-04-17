@@ -13,7 +13,8 @@ class Coordinates:
         self.z = z
 
     def get_distance(self, location2):
-        return (((self.x - location2.x) ** 2) + ((self.y - location2.y) ** 2) + ((self.z - location2.z) ** 2)) ** 0.5
+        # return (((self.x - location2.x) ** 2) + ((self.y - location2.y) ** 2) + ((self.z - location2.z) ** 2)) ** 0.5
+        return (((self.x - location2.x) ** 2) + ((self.y - location2.y) ** 2)) ** 0.5
 
     def get_ball_distance_with_player(self, player):
         min_distance = math.inf

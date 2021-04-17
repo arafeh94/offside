@@ -103,7 +103,7 @@ class Player:
         elif self.is_in_offside_position:
             self.player_gui.change_text(str(self.player_id) + " !!")
         elif self.is_possessing_ball:
-            self.player_gui.change_text(str(self.player_id) + " *")
+            self.player_gui.change_text(str(self.player_id) + " *****")
         else:
             self.player_gui.change_text(str(self.player_id))
 

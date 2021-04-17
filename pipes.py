@@ -3,11 +3,12 @@ from datetime import datetime
 
 import Settings
 import utils
-from aio import Pipe
+from aio import Pipe, TagStreamParser
 
 
 class PlayerFileSaverPipe(Pipe):
     def __init__(self, folder=""):
+        super().__init__()
         self.file_dict = {}
         self.folder = folder
         if not os.path.exists(folder):
@@ -21,8 +22,8 @@ class PlayerFileSaverPipe(Pipe):
         return self.file_dict[player_id]
 
     def next(self, data) -> object:
-        copy = utils.tuple_to_csv(data) + "\n"
-        self.get_file(data[1]).write(copy)
+        copy = utils.csv(data) + "\n"
+        self.get_file(data[TagStreamParser.TAG]).write(copy)
         return data
 
     def on_close(self):

@@ -76,6 +76,9 @@ class ComStreamSource(StreamSource):
 
 
 class Pipe:
+    def __init__(self):
+        self.source = None
+
     @abstractmethod
     def next(self, data) -> object:
         pass
@@ -94,15 +97,22 @@ class Streamer:
         self.pipes = []
         self.status = Streamer.STATUS_STOPPED
         self.thread = None
+        self.buffer = []
 
     def add_pipe(self, pipe: Pipe):
+        pipe.source = self
         self.pipes.append(pipe)
+
+    def next_reading(self):
+        if len(self.buffer) > 0:
+            return self.buffer.pop(0)
+        return self.source.read_line()
 
     def run(self):
         self.status = Streamer.STATUS_RUNNING
         self.source.open()
         while self.status == Streamer.STATUS_RUNNING:
-            reading = self.source.read_line()
+            reading = self.next_reading()
             if reading is not None:
                 local_pipe = iter(self.pipes)
                 try:
@@ -135,6 +145,7 @@ class ConsoleOutPipe(Pipe):
 
 class FrequencyControlPipe(Pipe):
     def __init__(self, frequency=10.):
+        super().__init__()
         self.frequency = frequency
 
     def next(self, data) -> object:
@@ -145,11 +156,12 @@ class FrequencyControlPipe(Pipe):
 
 # noinspection PyBroadException
 class TagStreamParser(Pipe):
-    TIMESTAMP = 0
-    TAG = 1
-    X = 2
-    Y = 3
-    Z = 4
+    POS = 0
+    TIMESTAMP = 1
+    TAG = 2
+    X = 3
+    Y = 4
+    Z = 5
 
     def next(self, data) -> object:
         try:
@@ -157,14 +169,15 @@ class TagStreamParser(Pipe):
             if len(line) < 5:
                 return None
             timestamp = time.time()
+            pos = str(line[1])
             tag = str(line[2])
             x = float(line[3])
             y = float(line[4])
             z = float(line[5])
             if math.isnan(x) or math.isnan(y) or math.isnan(z):
                 return None
-            return timestamp, tag, x, y, z
-        except:
+            return pos, timestamp, tag, x, y, z
+        except Exception as e:
             return None
 
 
@@ -172,6 +185,7 @@ class MovementFilterPipe(Pipe):
     RESET_TICK_COUNTER = 10
 
     def __init__(self):
+        super().__init__()
         self.dict = {}
         self.tag_counter = {}
 
@@ -215,6 +229,7 @@ class MovementFilterPipe(Pipe):
 
 class ShakeFilter(Pipe):
     def __init__(self, margin=0.035):
+        super().__init__()
         self.dict = {}
         self.margin = margin
 
@@ -252,11 +267,13 @@ class ShakeFilter(Pipe):
 
 
 class SpeedDirectionPipe(Pipe):
-    SPEED = 5
-    DIRECTION = 6
-    ACCELERATION = 7
+    SPEED = 6
+    DIRECTION = 7
+    ACCELERATION = 8
+    DISTANCE = 9
 
     def __init__(self):
+        super().__init__()
         self.dict = {}
 
     def get(self, tag_id):
@@ -275,12 +292,14 @@ class SpeedDirectionPipe(Pipe):
             data.append(0)
             data.append(0)
             data.append(0)
+            data.append(0)
             return_result = tuple(data)
             self.set(tag_id, return_result)
             return return_result
         else:
             new_data = data
             old_data = self.get(tag_id)
+            distance = self.distance(old_data, new_data)
             speed = self.speed(old_data, new_data)
             direction = self.direction(old_data, new_data)
             acc = self.acceleration(old_data, new_data, speed)
@@ -288,9 +307,18 @@ class SpeedDirectionPipe(Pipe):
             return_result.append(speed)
             return_result.append(direction)
             return_result.append(acc)
+            return_result.append(distance)
             return_results = tuple(return_result)
             self.set(tag_id, return_result)
             return return_results
+
+    # noinspection PyMethodMayBeStatic
+    # need to optimize
+    def distance(self, old, new):
+        old_point = [old[TagStreamParser.X], old[TagStreamParser.Y], old[TagStreamParser.Z]]
+        new_point = [new[TagStreamParser.X], new[TagStreamParser.Y], new[TagStreamParser.Z]]
+        distance = utils.dist(old_point, new_point)
+        return distance
 
     # noinspection PyMethodMayBeStatic
     def speed(self, old, new):
@@ -311,7 +339,7 @@ class SpeedDirectionPipe(Pipe):
         x = new[TagStreamParser.X] - old[TagStreamParser.X]
         y = new[TagStreamParser.Y] - old[TagStreamParser.Y]
         direction = math.atan2(y, x)
-        return direction
+        return math.degrees(direction)
 
     # noinspection PyMethodMayBeStatic
     def acceleration(self, old, new, new_speed):
@@ -329,6 +357,7 @@ class SpeedDirectionPipe(Pipe):
 class FileSaverPipe(Pipe):
 
     def __init__(self, output_path, map=None):
+        super().__init__()
         self.output_path = output_path
         self.writer = open(output_path, "w")
         self.map = map
@@ -352,6 +381,7 @@ class FileSaverPipe(Pipe):
 
 class HandlerPipe(Pipe):
     def __init__(self, handler):
+        super().__init__()
         self.handler = handler
 
     def next(self, data) -> object:
@@ -359,18 +389,20 @@ class HandlerPipe(Pipe):
             self.handler(data)
         return data
 
-# if __name__ == "__main__":
-#     file_date = datetime.now().strftime("%b-%d-%Y_%H-%M-%S")
-#     stream_source = FileStreamSource(Settings.FILE_PATH) if Settings.IS_READ_FROM_FILE else ComStreamSource(
-#         Settings.COM_PORT_TAG_READER, Settings.COM_SETTINGS)
-#     streamers = Streamer(stream_source)
-#     streamers.add_pipe(ConsoleOutPipe())
-#     if Settings.IS_READ_FROM_FILE:
-#         streamers.add_pipe(FrequencyControlPipe(Settings.READING_FREQUENCY))
-#     else:
-#         streamers.add_pipe(FileSaverPipe("logs/Raw-" + file_date + ".txt"))
-#     streamers.add_pipe(TagStreamParser())
-#     streamers.add_pipe(ShakeFilter(Settings.SHAKE_FILTER_MARGIN))
-#     streamers.add_pipe(SpeedDirectionPipe())
-#     streamers.add_pipe(FileSaverPipe("logs/Parsed-" + file_date + ".txt", map=utils.tuple_to_csv))
-#     streamers.run()
+
+class StdBuffer:
+    def __init__(self, max_buffer):
+        self.buffer = {}
+        self.volatile_buffer = []
+        self.max_buffer = max_buffer
+
+    def register(self, printable, tag=None):
+        if tag is None:
+            while len(self.volatile_buffer) > self.max_buffer:
+                self.volatile_buffer.pop(0)
+            self.volatile_buffer.append(printable)
+        else:
+            self.buffer[tag] = printable
+
+    def get_buffer(self):
+        return list(self.buffer.values()) + self.volatile_buffer

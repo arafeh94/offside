@@ -5,7 +5,8 @@ from time import sleep
 
 from PIL import ImageTk, Image
 import gui
-import table
+import stdout
+import time_series
 from Coordinates import Coordinates
 from Player import Player
 from Protocol import Protocol
@@ -80,16 +81,24 @@ detect_mis_located_players()
 
 
 def stream_handler(data):
-    received_tag = Tag(data[1], data[0], Coordinates(data[2], data[3] + (Protocol.FIELD.REAL_HEIGHT / 2), data[4]),
-                       data[5], data[6],
-                       data[7])
+    received_tag = Tag(data[TagStreamParser.TAG], data[TagStreamParser.TIMESTAMP],
+                       Coordinates(data[TagStreamParser.X], data[TagStreamParser.Y] + (Protocol.FIELD.REAL_HEIGHT / 2),
+                                   data[TagStreamParser.Z]),
+                       data[SpeedDirectionPipe.SPEED], data[SpeedDirectionPipe.DIRECTION],
+                       data[SpeedDirectionPipe.ACCELERATION], data[SpeedDirectionPipe.DISTANCE])
     global OFFSIDE
     global CAN_MOVE
+    stdout.out(received_tag)
     if received_tag.tag_id == Settings.BALL_TAG:
+        if data[TagStreamParser.POS] == "-1":
+            app.ball.change_text("-")
+        else:
+            app.ball.change_text(".")
+
         app.ball.set_projected_location(received_tag.location.x, received_tag.location.y)
         app.ball.update_info(received_tag)
         detect_mis_located_players()
-        is_offside = ball.move_ball(received_tag.location)
+        is_offside = ball.update_ball(received_tag)
         if is_offside and CAN_MOVE:
             CAN_MOVE = False
             ball.player_possessing.change_display()
@@ -106,17 +115,16 @@ def stream_handler(data):
         app.place_tag(received_tag)
 
         # dummy 4th player
-        players[-1].set_tag(Tag(utils.as_list(players[-1].tags)[0].tag_id, 0,
-                                Coordinates(Protocol.FIELD.REAL_WIDTH / 2, Protocol.FIELD.REAL_HEIGHT, 0)))
-        app.place_tag(Tag(utils.as_list(players[-1].tags)[0].tag_id, 0,
-                          Coordinates(Protocol.FIELD.REAL_WIDTH / 2, Protocol.FIELD.REAL_HEIGHT, 0)))
-        players[-1].set_tag(Tag(utils.as_list(players[-1].tags)[1].tag_id, 0,
-                                Coordinates(Protocol.FIELD.REAL_WIDTH / 2, Protocol.FIELD.REAL_HEIGHT, 0)))
-        app.place_tag(Tag(utils.as_list(players[-1].tags)[1].tag_id, 0,
-                          Coordinates(Protocol.FIELD.REAL_WIDTH / 2, Protocol.FIELD.REAL_HEIGHT, 0)))
-        # app.place_tag(Tag(utils.as_list(players[-1].tags)[1].tag_id, 0,
-        #                   Coordinates(Protocol.FIELD.REAL_WIDTH / 2, Protocol.FIELD.REAL_HEIGHT, 0)))
+        _t1 = Tag(utils.as_list(players[-1].tags)[0].tag_id, 0,
+                  Coordinates(Protocol.FIELD.REAL_WIDTH / 2, Protocol.FIELD.REAL_HEIGHT, 0))
+        _t2 = Tag(utils.as_list(players[-1].tags)[1].tag_id, 0,
+                  Coordinates(Protocol.FIELD.REAL_WIDTH / 2, Protocol.FIELD.REAL_HEIGHT, 0))
+        players[-1].set_tag(_t1)
+        app.place_tag(_t1)
+        players[-1].set_tag(_t2)
+        app.place_tag(_t2)
         players[-1].change_display()
+
         detect_mis_located_players()
 
 
@@ -125,15 +133,10 @@ def stream_handler(data):
 # dg.start()
 
 
-def console_table_printer(data):
-    table.update_table(players, ball)
-
-
 file_date = datetime.now().strftime("%b-%d-%Y_%H-%M-%S")
 stream_source = FileStreamSource(Settings.FILE_PATH) if Settings.IS_READ_FROM_FILE else ComStreamSource(
     Settings.COM_PORT_TAG_READER, Settings.COM_SETTINGS)
 streamers = Streamer(stream_source)
-# streamers.add_pipe(ConsoleOutPipe())
 if Settings.IS_READ_FROM_FILE:
     streamers.add_pipe(FrequencyControlPipe(Settings.READING_FREQUENCY))
 else:
@@ -142,10 +145,12 @@ streamers.add_pipe(TagStreamParser())
 streamers.add_pipe(ShakeFilter(Settings.SHAKE_FILTER_MARGIN))
 streamers.add_pipe(MovementFilterPipe())
 streamers.add_pipe(SpeedDirectionPipe())
-streamers.add_pipe(FileSaverPipe("logs/Parsed-" + file_date + ".txt", map=utils.tuple_to_csv))
+# streamers.add_pipe(time_series.AutoCorrectionPipe())
+# streamers.add_pipe(FileSaverPipe("logs/Parsed-" + file_date + ".txt", map=utils.csv))
 streamers.add_pipe(PlayerFileSaverPipe("plogs/" + file_date))
 streamers.add_pipe(HandlerPipe(stream_handler))
-streamers.add_pipe(HandlerPipe(console_table_printer))
+streamers.add_pipe(stdout.ConsoleUpdatePipe())
+streamers.add_pipe(stdout.StdPipe())
 streamers.start()
 
 

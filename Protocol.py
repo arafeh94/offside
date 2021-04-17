@@ -1,7 +1,7 @@
 class Protocol:
     class FIELD:
-        REAL_WIDTH = 4.34
-        REAL_HEIGHT = 3.56
+        REAL_WIDTH = 12.30
+        REAL_HEIGHT = 10.54
         REAL_HEIGHT *= 2
         HALF_FIELD = REAL_HEIGHT / 2
 

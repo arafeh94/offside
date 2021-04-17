@@ -1,3 +1,5 @@
+import threading
+
 import Settings
 
 
@@ -7,7 +9,7 @@ def dist(point1, point2):
             ((point1[2] - point2[2]) ** 2)) ** 0.5
 
 
-def tuple_to_csv(_tuple):
+def csv(_tuple):
     string = ""
     for item in _tuple:
         string += str(item) + ","
@@ -34,3 +36,16 @@ def tag_to_player_id(tag):
             if tag in settings_tag:
                 return "0" + str(index + 1)
     return "Nan"
+
+
+def run_after(time_sec, callable):
+    start_time = threading.Timer(time_sec, callable)
+    start_time.start()
+
+
+def as_reader_input(tag, x, y, z):
+    return 'POS,-1,' + str(tag) + ',' + str(x) + ',' + str(y) + ',' + str(z) + ',30,x03\r\n'
+
+
+def tag_numbers():
+    return Settings.TAG_NUMBERS

@@ -83,6 +83,7 @@ class TextComponent(Component):
         self.ctx.itemconfigure(self.component, text=content)
 
 
+
 class ImageComponent(Component):
     def __init__(self, cid, src, x, y, ctag=None):
         super().__init__(cid, x, y, ctag)
@@ -93,7 +94,7 @@ class ImageComponent(Component):
 
 
 class Player(TextComponent):
-    colors = ['black', 'silver', 'pink', 'cyan', 'grey', 'orange']
+    colors = ['silver', 'silver', 'pink', 'cyan', 'grey', 'orange']
 
     def __init__(self, cid: str, logic_player):
         super(Player, self). \
@@ -103,7 +104,7 @@ class Player(TextComponent):
         self.logic_player = logic_player
         self.tags_component = [
             TextComponent(tag.tag_id, '.', Player.colors[index], 0, 0, ctag='Tag',
-                          font=("Helvetica", 16))
+                          font=("Helvetica", 30))
             for index, tag in enumerate(utils.as_list(logic_player.tags))
         ]
         self.info = TextComponent(str(cid) + "_info", "", "white", 0, 0, font=("Helvetica", 6))
@@ -148,9 +149,9 @@ class Player(TextComponent):
             self.info.set_location(location[0] + 20, location[1])
 
 
-class Ball(ImageComponent):
+class Ball(TextComponent):
     def __init__(self, cid, x, y):
-        super(Ball, self).__init__(cid, "assets/ball.png", x, y, 'Ball')
+        super(Ball, self).__init__(cid, ".", 'black', x, y, ctag='Ball', font=("Helvetica", 30))
         self.info = TextComponent("ball_info", "", "white", 0, 0, font=("Helvetica", 6))
 
     def draw(self):
@@ -221,4 +222,3 @@ class Application:
     def loop(self):
         self.ctx.pack()
         self.root.mainloop()
-
