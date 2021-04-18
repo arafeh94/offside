@@ -6,17 +6,15 @@ NUMBER_OF_PLAYERS_PER_TEAM = 2
 # How close a player from the ball to acquire it
 PLAYER_POSSESSION_PROXIMITY = 0.4
 
-
-t1 = '1833'
+t1 = '0337'
 t2 = '03B0'
 t3 = '03EF'
-t4 = '0095'
+t4 = '1780'
 t5 = '1848'
 t6 = '46FE'
 t7 = '10DB'
-t8 = 'DUM1'
-t9 = 'DUM2'
-
+t8 = '0095'
+t9 = 'tmp1'
 
 BALL_TAG = t1
 PLAYERS_TAGS = [
@@ -32,23 +30,24 @@ COM_PORT_TAG_READER = 'COM8'
 COM_SETTINGS = 115200
 
 IS_READ_FROM_FILE = True
-FILE_PATH = 'old_logs/shooting fast 2 - check last shot/Raw-Apr-15-2021_12-33-39.txt'
+FILE_PATH = 'old_logs 2/logs/Raw-Apr-17-2021_11-12-44.txt'
+# FILE_PATH = 'logs/test.txt'
 READING_FREQUENCY = 1000
 
 # SHAKE_FILTER_MARGIN = 0.0
-SHAKE_FILTER_MARGIN = 0.35
+SHAKE_FILTER_MARGIN = 0.15
+HIGH_SHAKE_FILTER_MARGIN = 0.5
 
 DEFENDANT_BALL_TOUCH_SENSITIVITY = 10
 # 10 = 1 second
 
 # 1 is the default map scaling
-SCALE_MAP = 2.5
+SCALE_MAP = 1.8
 
 STATS_FOR_NERDS = True
 ROUND_NUMBER = 3
 
-
 ####
 DISTANCE_THRESHOLD = 0.5
-DIRECTION_CURVE_THRESHOLD = 45
+DIRECTION_CURVE_THRESHOLD = 20
 PLAYER_POSSESSION_PROXIMITY_MULTIPLIER = 2

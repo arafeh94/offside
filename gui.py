@@ -9,6 +9,7 @@ from typing import List, NewType
 from PIL import ImageTk, Image
 
 import utils
+from Ball import Ball
 from Protocol import Protocol
 import Settings
 from logic import Tag
@@ -18,6 +19,14 @@ class Util:
     @staticmethod
     def midpoint(x1, y1, x2, y2):
         return (x1 + x2) / 2, (y1 + y2) / 2
+
+    @staticmethod
+    def create_circle(x, y, r, canvas):  # center coordinates, radius
+        x0 = (x - r)
+        y0 = (y - r)
+        x1 = (x + r)
+        y1 = (y + r)
+        return canvas.create_oval(x0, y0, x1, y1, outline="#DDD", width=2)
 
 
 class Component:
@@ -81,7 +90,6 @@ class TextComponent(Component):
 
     def change_text(self, content):
         self.ctx.itemconfigure(self.component, text=content)
-
 
 
 class ImageComponent(Component):
@@ -151,24 +159,33 @@ class Player(TextComponent):
 
 class Ball(TextComponent):
     def __init__(self, cid, x, y):
-        super(Ball, self).__init__(cid, ".", 'black', x, y, ctag='Ball', font=("Helvetica", 30))
+        super(Ball, self).__init__(cid, ".", "black", x, y, font=("Helvetica", 32), ctag="ball")
         self.info = TextComponent("ball_info", "", "white", 0, 0, font=("Helvetica", 6))
+        self.circle = None
 
     def draw(self):
         super(Ball, self).draw()
         self.info.draw()
 
-    def update_info(self, tag: Tag):
+    def update_info(self, tag: Tag, ball: Ball):
         if Settings.STATS_FOR_NERDS:
             text = str(round(tag.speed, Settings.ROUND_NUMBER)) + "\n" + \
                    str(round(tag.direction, Settings.ROUND_NUMBER)) + "\n" + \
+                   str(round(ball.angle_arafeh, Settings.ROUND_NUMBER)) + "\n" + \
                    str(round(tag.acceleration, Settings.ROUND_NUMBER))
             location = self.loc()
             self.info.change_text(text)
             self.info.set_location(location[0] + 20, location[1] - 10)
 
+    # def update_circle(self, r):
+    #     if self.circle is None:
+    #         self.circle = Util.create_circle(self.loc()[0], self.loc()[1], r, self.ctx)
+    #     else:
+    #         self.ctx.delete(self.circle)
+    #         self.circle = None
+    #         self.update_circle(r)
 
-# noinspection PyTypeChecker
+
 class Application:
     _app = None
 

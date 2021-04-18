@@ -79,33 +79,47 @@ def reset():
 
 detect_mis_located_players()
 
+index = 0
+
 
 def stream_handler(data):
+    global index
+    index += 1
+    # print(index)
     received_tag = Tag(data[TagStreamParser.TAG], data[TagStreamParser.TIMESTAMP],
                        Coordinates(data[TagStreamParser.X], data[TagStreamParser.Y] + (Protocol.FIELD.REAL_HEIGHT / 2),
-                                   data[TagStreamParser.Z]),
-                       data[SpeedDirectionPipe.SPEED], data[SpeedDirectionPipe.DIRECTION],
-                       data[SpeedDirectionPipe.ACCELERATION], data[SpeedDirectionPipe.DISTANCE])
+                                   data[TagStreamParser.Z]), data[SpeedDirectionPipe.SPEED],
+                       data[SpeedDirectionPipe.DIRECTION], data[SpeedDirectionPipe.ACCELERATION],
+                       data[SpeedDirectionPipe.DISTANCE], data[HighShakeFilteredInfo.HF_SPEED],
+                       data[HighShakeFilteredInfo.HF_DIRECTION], data[HighShakeFilteredInfo.HF_ACCELERATION],
+                       data[HighShakeFilteredInfo.HF_DISTANCE])
     global OFFSIDE
     global CAN_MOVE
     stdout.out(received_tag)
     if received_tag.tag_id == Settings.BALL_TAG:
-        if data[TagStreamParser.POS] == "-1":
-            app.ball.change_text("-")
-        else:
-            app.ball.change_text(".")
+        # if data[TagStreamParser.POS] == "-1":
+        #     app.ball.change_text("-")
+        # else:
+        #     app.ball.change_text(".")
 
         app.ball.set_projected_location(received_tag.location.x, received_tag.location.y)
-        app.ball.update_info(received_tag)
+        # app.ball.update_circle(20)
         detect_mis_located_players()
-        is_offside = ball.update_ball(received_tag)
+        is_offside, offside_type = ball.update_ball(received_tag)
+        app.ball.update_info(received_tag, ball)
         if is_offside and CAN_MOVE:
             CAN_MOVE = False
             ball.player_possessing.change_display()
+            text = ""
+            if offside_type == 1:
+                text = "OFFSIDE!"
+            elif offside_type == 2:
+                text = "POTENTIAL OFFSIDE (low filter)!"
+            elif offside_type == 3:
+                text = "POTENTIAL OFFSIDE (high filter)!"
             OFFSIDE = app.ctx.create_text(Protocol.FIELD.WIDTH / 2, Protocol.FIELD.HEIGHT / 2, fill="black",
-                                          font="Times 16 bold",
-                                          text="OFFSIDE HAS BEEN DETECTED!")
-            start_time = threading.Timer(2, reset)
+                                          font="Times 32 bold", text=text)
+            start_time = threading.Timer(4, reset)
             start_time.start()
     else:
         for _p in players:
@@ -142,15 +156,17 @@ if Settings.IS_READ_FROM_FILE:
 else:
     streamers.add_pipe(FileSaverPipe("logs/Raw-" + file_date + ".txt"))
 streamers.add_pipe(TagStreamParser())
+streamers.add_pipe(HighShakeFilteredInfo(Settings.HIGH_SHAKE_FILTER_MARGIN))
 streamers.add_pipe(ShakeFilter(Settings.SHAKE_FILTER_MARGIN))
-streamers.add_pipe(MovementFilterPipe())
+# streamers.add_pipe(MovementFilterPipe())
 streamers.add_pipe(SpeedDirectionPipe())
 # streamers.add_pipe(time_series.AutoCorrectionPipe())
 # streamers.add_pipe(FileSaverPipe("logs/Parsed-" + file_date + ".txt", map=utils.csv))
 streamers.add_pipe(PlayerFileSaverPipe("plogs/" + file_date))
 streamers.add_pipe(HandlerPipe(stream_handler))
 streamers.add_pipe(stdout.ConsoleUpdatePipe())
-streamers.add_pipe(stdout.StdPipe())
+# streamers.add_pipe(stdout.StdPipe())
+
 streamers.start()
 
 

@@ -9,11 +9,23 @@ def dist(point1, point2):
             ((point1[2] - point2[2]) ** 2)) ** 0.5
 
 
-def csv(_tuple):
+def csv(val):
+    if type(val) in (tuple, list):
+        return tuple_2_csv(val)
+    if type(val) is dict:
+        return dict_2_csv(val)
+    return "Inconvertible Format"
+
+
+def tuple_2_csv(val):
     string = ""
-    for item in _tuple:
+    for item in val:
         string += str(item) + ","
     return string.rstrip(",")
+
+
+def dict_2_csv(dictionary: dict):
+    return tuple_2_csv(dictionary.values())
 
 
 def eof_remover(string: str):

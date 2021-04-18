@@ -116,7 +116,8 @@ class Streamer:
             if reading is not None:
                 local_pipe = iter(self.pipes)
                 try:
-                    pipe_result = next(local_pipe).next(reading)
+                    next_pipe = next(local_pipe)
+                    pipe_result = next_pipe.next(reading)
                     while pipe_result is not None:
                         next_pipe = next(local_pipe)
                         pipe_result = next_pipe.next(pipe_result)
@@ -156,12 +157,12 @@ class FrequencyControlPipe(Pipe):
 
 # noinspection PyBroadException
 class TagStreamParser(Pipe):
-    POS = 0
-    TIMESTAMP = 1
-    TAG = 2
-    X = 3
-    Y = 4
-    Z = 5
+    POS = 'pos'
+    TIMESTAMP = 'timestamp'
+    TAG = 'tag'
+    X = 'x'
+    Y = 'y'
+    Z = 'z'
 
     def next(self, data) -> object:
         try:
@@ -176,7 +177,7 @@ class TagStreamParser(Pipe):
             z = float(line[5])
             if math.isnan(x) or math.isnan(y) or math.isnan(z):
                 return None
-            return pos, timestamp, tag, x, y, z
+            return {'pos': pos, 'timestamp': timestamp, 'tag': tag, 'x': x, 'y': y, 'z': z}
         except Exception as e:
             return None
 
@@ -251,13 +252,13 @@ class ShakeFilter(Pipe):
             old_point = [old_data[TagStreamParser.X], old_data[TagStreamParser.Y], old_data[TagStreamParser.Z]]
             new_point = [new_data[TagStreamParser.X], new_data[TagStreamParser.Y], new_data[TagStreamParser.Z]]
             is_shaking = self.is_shaking(old_point, new_point)
-            return_data = [x for x in new_data]
+            return_data = new_data
             if is_shaking:
                 return_data[TagStreamParser.X] = old_data[TagStreamParser.X]
                 return_data[TagStreamParser.Y] = old_data[TagStreamParser.Y]
                 return_data[TagStreamParser.Z] = old_data[TagStreamParser.Z]
 
-            result = tuple(return_data)
+            result = return_data
             self.set(tag_id, result)
             return result
 
@@ -267,10 +268,10 @@ class ShakeFilter(Pipe):
 
 
 class SpeedDirectionPipe(Pipe):
-    SPEED = 6
-    DIRECTION = 7
-    ACCELERATION = 8
-    DISTANCE = 9
+    SPEED = 'speed'
+    DIRECTION = 'direction'
+    ACCELERATION = 'acceleration'
+    DISTANCE = 'distance'
 
     def __init__(self):
         super().__init__()
@@ -288,12 +289,11 @@ class SpeedDirectionPipe(Pipe):
         tag_id = data[TagStreamParser.TAG]
         history = self.get(tag_id)
         if history is None:
-            data = [x for x in data]
-            data.append(0)
-            data.append(0)
-            data.append(0)
-            data.append(0)
-            return_result = tuple(data)
+            return_result = data
+            return_result[SpeedDirectionPipe.SPEED] = 0
+            return_result[SpeedDirectionPipe.DIRECTION] = 0
+            return_result[SpeedDirectionPipe.DISTANCE] = 0
+            return_result[SpeedDirectionPipe.ACCELERATION] = 0
             self.set(tag_id, return_result)
             return return_result
         else:
@@ -303,14 +303,13 @@ class SpeedDirectionPipe(Pipe):
             speed = self.speed(old_data, new_data)
             direction = self.direction(old_data, new_data)
             acc = self.acceleration(old_data, new_data, speed)
-            return_result = [x for x in data]
-            return_result.append(speed)
-            return_result.append(direction)
-            return_result.append(acc)
-            return_result.append(distance)
-            return_results = tuple(return_result)
+            return_result = new_data
+            return_result[SpeedDirectionPipe.SPEED] = speed
+            return_result[SpeedDirectionPipe.DIRECTION] = direction
+            return_result[SpeedDirectionPipe.DISTANCE] = distance
+            return_result[SpeedDirectionPipe.ACCELERATION] = acc
             self.set(tag_id, return_result)
-            return return_results
+            return return_result
 
     # noinspection PyMethodMayBeStatic
     # need to optimize
@@ -338,6 +337,8 @@ class SpeedDirectionPipe(Pipe):
     def direction(self, old, new):
         x = new[TagStreamParser.X] - old[TagStreamParser.X]
         y = new[TagStreamParser.Y] - old[TagStreamParser.Y]
+        # x = new[TagStreamParser.X]
+        # y = new[TagStreamParser.Y]
         direction = math.atan2(y, x)
         return math.degrees(direction)
 
@@ -354,6 +355,29 @@ class SpeedDirectionPipe(Pipe):
             return 0
 
 
+# noinspection PyUnresolvedReferences,PyTypeChecker
+class HighShakeFilteredInfo(Pipe):
+    HF_SPEED = "hf_speed"
+    HF_DIRECTION = "hf_direction"
+    HF_ACCELERATION = "hf_accelerometer"
+    HF_DISTANCE = "hf_distance"
+
+    def __init__(self, high_margin):
+        super().__init__()
+        self.shake_filter = ShakeFilter(high_margin)
+        self.info_appender = SpeedDirectionPipe()
+
+    def next(self, data) -> object:
+        copy = data.copy()
+        copy = self.shake_filter.next(copy)
+        copy = self.info_appender.next(copy)
+        data[self.HF_SPEED] = copy[SpeedDirectionPipe.SPEED]
+        data[self.HF_DIRECTION] = copy[SpeedDirectionPipe.DIRECTION]
+        data[self.HF_ACCELERATION] = copy[SpeedDirectionPipe.ACCELERATION]
+        data[self.HF_DISTANCE] = copy[SpeedDirectionPipe.DISTANCE]
+        return data
+
+
 class FileSaverPipe(Pipe):
 
     def __init__(self, output_path, map=None):
@@ -363,8 +387,6 @@ class FileSaverPipe(Pipe):
         self.map = map
 
     def next(self, data) -> object:
-        # x = threading.Thread(target=self.write, args=(data,))
-        # x.start()
         self.write(data)
         return data
 
