@@ -61,3 +61,14 @@ def as_reader_input(tag, x, y, z):
 
 def tag_numbers():
     return Settings.TAG_NUMBERS
+
+
+def to_file(players, ball):
+    st = "-1, BTAG," + str(ball.location.x) + "," + str(ball.location.y) + "," + str(ball.location.z) + "," + "False\n"
+    for player in players:
+        for tag_id, tag in player.tags.items():
+            st += str(player.player_id) + "," + str(tag_id) + "," + str(tag.location.x) + "," + str(
+                tag.location.y) + "," + \
+                  str(tag.location.z) + "," + str(player.is_offside_alert) + "\n"
+    writer = open("last_offside.txt", "w")
+    writer.write(st)

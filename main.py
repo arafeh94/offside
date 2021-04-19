@@ -85,6 +85,11 @@ index = 0
 def stream_handler(data):
     global index
     index += 1
+    missing = [HighShakeFilteredInfo.HF_SPEED, HighShakeFilteredInfo.HF_DIRECTION,
+               HighShakeFilteredInfo.HF_ACCELERATION, HighShakeFilteredInfo.HF_DISTANCE]
+    for item in missing:
+        if item not in data:
+            data[item] = 0.0
     # print(index)
     received_tag = Tag(data[TagStreamParser.TAG], data[TagStreamParser.TIMESTAMP],
                        Coordinates(data[TagStreamParser.X], data[TagStreamParser.Y] + (Protocol.FIELD.REAL_HEIGHT / 2),
@@ -97,13 +102,7 @@ def stream_handler(data):
     global CAN_MOVE
     stdout.out(received_tag)
     if received_tag.tag_id == Settings.BALL_TAG:
-        # if data[TagStreamParser.POS] == "-1":
-        #     app.ball.change_text("-")
-        # else:
-        #     app.ball.change_text(".")
-
         app.ball.set_projected_location(received_tag.location.x, received_tag.location.y)
-        # app.ball.update_circle(20)
         detect_mis_located_players()
         is_offside, offside_type = ball.update_ball(received_tag)
         app.ball.update_info(received_tag, ball)
@@ -119,6 +118,7 @@ def stream_handler(data):
                 text = "POTENTIAL OFFSIDE (high filter)!"
             OFFSIDE = app.ctx.create_text(Protocol.FIELD.WIDTH / 2, Protocol.FIELD.HEIGHT / 2, fill="black",
                                           font="Times 32 bold", text=text)
+            utils.to_file(players, ball)
             start_time = threading.Timer(4, reset)
             start_time.start()
     else:
@@ -129,15 +129,15 @@ def stream_handler(data):
         app.place_tag(received_tag)
 
         # dummy 4th player
-        _t1 = Tag(utils.as_list(players[-1].tags)[0].tag_id, 0,
-                  Coordinates(Protocol.FIELD.REAL_WIDTH / 2, Protocol.FIELD.REAL_HEIGHT, 0))
-        _t2 = Tag(utils.as_list(players[-1].tags)[1].tag_id, 0,
-                  Coordinates(Protocol.FIELD.REAL_WIDTH / 2, Protocol.FIELD.REAL_HEIGHT, 0))
-        players[-1].set_tag(_t1)
-        app.place_tag(_t1)
-        players[-1].set_tag(_t2)
-        app.place_tag(_t2)
-        players[-1].change_display()
+        # _t1 = Tag(utils.as_list(players[-1].tags)[0].tag_id, 0,
+        #           Coordinates(Protocol.FIELD.REAL_WIDTH / 2, Protocol.FIELD.REAL_HEIGHT, 0))
+        # _t2 = Tag(utils.as_list(players[-1].tags)[1].tag_id, 0,
+        #           Coordinates(Protocol.FIELD.REAL_WIDTH / 2, Protocol.FIELD.REAL_HEIGHT, 0))
+        # players[-1].set_tag(_t1)
+        # app.place_tag(_t1)
+        # players[-1].set_tag(_t2)
+        # app.place_tag(_t2)
+        # players[-1].change_display()
 
         detect_mis_located_players()
 
@@ -165,7 +165,7 @@ streamers.add_pipe(SpeedDirectionPipe())
 streamers.add_pipe(PlayerFileSaverPipe("plogs/" + file_date))
 streamers.add_pipe(HandlerPipe(stream_handler))
 streamers.add_pipe(stdout.ConsoleUpdatePipe())
-# streamers.add_pipe(stdout.StdPipe())
+streamers.add_pipe(stdout.StdPipe())
 
 streamers.start()
 
