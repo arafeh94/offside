@@ -78,16 +78,16 @@ class Ball:
                 closest_distance = distance
                 offside_type = 1
 
-        if closest_player is None and run_ahmad:
-            # print("ahmad", self.angle_ahmad)
-            if abs(self.angle_ahmad) > Settings.DIRECTION_CURVE_THRESHOLD:
-                possession_radius *= Settings.PLAYER_POSSESSION_PROXIMITY_MULTIPLIER
-                for player in self.players:
-                    distance = self.location.get_ball_distance_with_player(player)
-                    if distance < closest_distance and distance < possession_radius:
-                        closest_player = player
-                        closest_distance = distance
-                        offside_type = 2
+        # if closest_player is None and run_ahmad:
+        #     # print("ahmad", self.angle_ahmad)
+        #     if abs(self.angle_ahmad) > Settings.DIRECTION_CURVE_THRESHOLD:
+        #         possession_radius *= Settings.PLAYER_POSSESSION_PROXIMITY_MULTIPLIER
+        #         for player in self.players:
+        #             distance = self.location.get_ball_distance_with_player(player)
+        #             if distance < closest_distance and distance < possession_radius:
+        #                 closest_player = player
+        #                 closest_distance = distance
+        #                 offside_type = 2
 
         if closest_player is None and run_arafeh:
             # print("arafeh", self.angle_arafeh)
