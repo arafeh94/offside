@@ -102,7 +102,7 @@ class ImageComponent(Component):
 
 
 class Player(TextComponent):
-    colors = ['silver', 'silver', 'pink', 'cyan', 'grey', 'orange']
+    colors = ['white', 'white', 'pink', 'cyan', 'grey', 'orange']
 
     def __init__(self, cid: str, logic_player):
         super(Player, self). \
@@ -196,14 +196,19 @@ class Application:
         return Application._app
 
     def __init__(self):
+        self.img = None
+        self.image = None
         self.root = tkinter.Tk()
         self.ctx = tkinter.Canvas(self.root, bg="white", height=Protocol.FIELD.HEIGHT + Protocol.FIELD.Y_START * 2,
                                   width=Protocol.FIELD.WIDTH + Protocol.FIELD.X_START * 2)
         self.players: List[Player] = []
         self.ball: Ball = None
 
-    def draw_pitch(self, image):
-        self.ctx.create_image(0, 0, anchor=tkinter.NW, image=image)
+    def draw_pitch(self):
+        self.img = Image.open(Protocol.FIELD.PITCH_PNG)
+        self.img = self.img.resize((int(self.img.width * Settings.SCALE_MAP), int(self.img.height * Settings.SCALE_MAP)), Image.ANTIALIAS)
+        self.image = ImageTk.PhotoImage(self.img)
+        self.ctx.create_image(0, 0, anchor=tkinter.NW, image=self.image)
 
     @staticmethod
     def rescale_map():

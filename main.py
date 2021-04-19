@@ -43,10 +43,8 @@ ball = Ball(Coordinates(0, 0, 0), players)
 # initialize UI
 app = gui.Application.instance()
 
-img = Image.open(Protocol.FIELD.PITCH_PNG)
-img = img.resize((int(img.width * Settings.SCALE_MAP), int(img.height * Settings.SCALE_MAP)), Image.ANTIALIAS)
-image = ImageTk.PhotoImage(img)
-app.draw_pitch(image)
+
+app.draw_pitch()
 
 for player in players:
     gui_player = gui.Player(player.player_id, player)
