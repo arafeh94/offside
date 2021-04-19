@@ -30,8 +30,9 @@ TAG_NUMBERS = 7
 COM_PORT_TAG_READER = 'COM8'
 COM_SETTINGS = 115200
 
+
 IS_READ_FROM_FILE = True
-FILE_PATH = 'old_logs 2/logs/Raw-Apr-17-2021_11-03-15.txt'
+FILE_PATH = 'old_logs 2/logs/Raw-Apr-17-2021_11-49-38.txt'
 # FILE_PATH = 'logs/test.txt'
 READING_FREQUENCY = 0
 

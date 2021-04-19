@@ -107,6 +107,7 @@ def stream_handler(data):
         is_offside, offside_type = ball.update_ball(received_tag)
         app.ball.update_info(received_tag, ball)
         if is_offside and CAN_MOVE:
+            utils.to_file(players, ball, True)
             CAN_MOVE = False
             ball.player_possessing.change_display()
             text = ""
@@ -118,9 +119,11 @@ def stream_handler(data):
                 text = "POTENTIAL OFFSIDE (high filter)!"
             OFFSIDE = app.ctx.create_text(Protocol.FIELD.WIDTH / 2, Protocol.FIELD.HEIGHT / 2, fill="black",
                                           font="Times 32 bold", text=text)
-            utils.to_file(players, ball)
             start_time = threading.Timer(4, reset)
             start_time.start()
+        else:
+            utils.to_file(players, ball, False)
+
     else:
         for _p in players:
             if _p.set_tag(received_tag):
