@@ -181,7 +181,6 @@ class TagStreamParser(Pipe):
         except Exception as e:
             return None
 
-
 class MovementFilterPipe(Pipe):
     RESET_TICK_COUNTER = 10
 

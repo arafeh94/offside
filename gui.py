@@ -157,9 +157,10 @@ class Player(TextComponent):
             self.info.set_location(location[0] + 20, location[1])
 
 
-class Ball(TextComponent):
+class Ball(ImageComponent):
     def __init__(self, cid, x, y):
-        super(Ball, self).__init__(cid, ".", "black", x, y, font=("Helvetica", 32), ctag="ball")
+        # super(Ball, self).__init__(cid, ".", "black", x, y, font=("Helvetica", 32), ctag="ball")
+        super(Ball, self).__init__(cid, "assets/ball.png", x, y, ctag="ball")
         self.info = TextComponent("ball_info", "", "white", 0, 0, font=("Helvetica", 6))
         self.circle = None
 
