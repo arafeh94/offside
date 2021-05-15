@@ -15,7 +15,6 @@ class Ball:
         self.player_possessing = None
 
         self.speed = 0
-
         self.direction_ahmad = 0
         self.angle_ahmad = 0
 

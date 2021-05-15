@@ -6,18 +6,24 @@ NUMBER_OF_PLAYERS_PER_TEAM = 2
 # How close a player from the ball to acquire it
 PLAYER_POSSESSION_PROXIMITY = 0.4
 
-t1 = '0337'
-t2 = '03B0'
+# t11 = '47EB'
+# t12 = '46FE'
+t11 = '03B0'
+t12 = '0095'
+BALL_TAG = t11
+BALL_TAG2 = t12
+
+
+t2 = '45D3'
 t3 = '03EF'
-t4 = '1780'
-t5 = '1848'
-t6 = '46FE'
-t7 = '10DB'
-t8 = '0095'
-t9 = 'tmp1'
+t4 = '23E6'
+t5 = '46FE'
+t6 = '1848'
+t7 = '4804'
+t8 = '47EB'
+t9 = '47EB'
 
 
-BALL_TAG = t1
 PLAYERS_TAGS = [
     [t2, t3],  # tags for player 1 4804 left foot 4830 right foots
     [t4, t5],  # ... 2 1780 lef foot 23E6 right foot
@@ -32,9 +38,9 @@ COM_SETTINGS = 115200
 
 
 IS_READ_FROM_FILE = True
-FILE_PATH = 'old_logs 2/logs/Raw-Apr-17-2021_11-49-38.txt'
+FILE_PATH = 'old_logs/Raw-Apr-21-2021_16-05-12.txt'
 # FILE_PATH = 'logs/test.txt'
-READING_FREQUENCY = 0
+READING_FREQUENCY = 50
 
 # SHAKE_FILTER_MARGIN = 0.0
 SHAKE_FILTER_MARGIN = 0.05

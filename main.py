@@ -43,7 +43,6 @@ ball = Ball(Coordinates(0, 0, 0), players)
 # initialize UI
 app = gui.Application.instance()
 
-
 app.draw_pitch()
 
 for player in players:
@@ -99,7 +98,8 @@ def stream_handler(data):
     global OFFSIDE
     global CAN_MOVE
     stdout.out(received_tag)
-    if received_tag.tag_id == Settings.BALL_TAG:
+
+    if received_tag.tag_id == Settings.BALL_TAG: #or received_tag.tag_id == Settings.BALL_TAG2:
         app.ball.set_projected_location(received_tag.location.x, received_tag.location.y)
         detect_mis_located_players()
         is_offside, offside_type = ball.update_ball(received_tag)
@@ -147,6 +147,56 @@ def stream_handler(data):
 # dg = DataGenerator(stream_handler, Settings.IS_READ_FROM_FILE, Settings.FILE_PATH)
 # dg.start()
 
+class BallHandlerPipe(Pipe):
+
+    def __init__(self, ball_tags):
+        super().__init__()
+        self.ball_tags = ball_tags
+        self.received_tags = []
+
+    def next(self, data) -> object:
+        force_send = False
+        if data[TagStreamParser.TAG] in self.ball_tags:
+
+            if data[TagStreamParser.TAG] in [tt[TagStreamParser.TAG] for tt in self.received_tags]:
+                force_send = True
+                self.source.buffer.append(utils.as_reader_input(data[TagStreamParser.TAG], data[TagStreamParser.X],
+                                                                data[TagStreamParser.Y], 0.0))
+            else:
+                self.received_tags.append(data)
+
+            if self.is_all_received() or force_send:
+                cp = {
+                    TagStreamParser.TAG: Settings.BALL_TAG,
+                    TagStreamParser.X: self.avg_of(TagStreamParser.X),
+                    TagStreamParser.Y: self.avg_of(TagStreamParser.Y),
+                    TagStreamParser.Z: self.avg_of(TagStreamParser.Z),
+                    TagStreamParser.TIMESTAMP: data[TagStreamParser.TIMESTAMP],
+                    TagStreamParser.POS: data[TagStreamParser.POS],
+                    SpeedDirectionPipe.SPEED: self.avg_of(SpeedDirectionPipe.SPEED),
+                    SpeedDirectionPipe.DIRECTION: self.avg_of(SpeedDirectionPipe.DIRECTION),
+                    SpeedDirectionPipe.ACCELERATION: self.avg_of(SpeedDirectionPipe.ACCELERATION),
+                    SpeedDirectionPipe.DISTANCE: self.avg_of(SpeedDirectionPipe.DISTANCE),
+                    HighShakeFilteredInfo.HF_SPEED: self.avg_of(HighShakeFilteredInfo.HF_SPEED),
+                    HighShakeFilteredInfo.HF_DIRECTION: self.avg_of(HighShakeFilteredInfo.HF_DIRECTION),
+                    HighShakeFilteredInfo.HF_ACCELERATION: self.avg_of(HighShakeFilteredInfo.HF_ACCELERATION),
+                    HighShakeFilteredInfo.HF_DISTANCE: self.avg_of(HighShakeFilteredInfo.HF_DISTANCE),
+                }
+                self.received_tags = []
+                return cp
+            else:
+                return None
+        return data
+
+    def is_all_received(self):
+        return len(self.received_tags) == len(self.ball_tags)
+
+    def avg_of(self, of):
+        avg = 0
+        for item in self.received_tags:
+            avg += item[of]
+        return avg / len(self.received_tags)
+
 
 file_date = datetime.now().strftime("%b-%d-%Y_%H-%M-%S")
 stream_source = FileStreamSource(Settings.FILE_PATH) if Settings.IS_READ_FROM_FILE else ComStreamSource(
@@ -164,6 +214,7 @@ streamers.add_pipe(SpeedDirectionPipe())
 # streamers.add_pipe(time_series.AutoCorrectionPipe())
 # streamers.add_pipe(FileSaverPipe("logs/Parsed-" + file_date + ".txt", map=utils.csv))
 streamers.add_pipe(PlayerFileSaverPipe("plogs/" + file_date))
+streamers.add_pipe(BallHandlerPipe([Settings.BALL_TAG, Settings.BALL_TAG2]))
 streamers.add_pipe(HandlerPipe(stream_handler))
 streamers.add_pipe(stdout.ConsoleUpdatePipe())
 streamers.add_pipe(stdout.StdPipe())

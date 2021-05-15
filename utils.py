@@ -42,7 +42,9 @@ def as_list(dictionary):
 
 def tag_to_player_id(tag):
     if tag == Settings.BALL_TAG:
-        return "00"
+        return "00b1"
+    # elif tag == Settings.BALL_TAG2:
+    #     return "00b2"
     else:
         for index, settings_tag in enumerate(Settings.PLAYERS_TAGS):
             if tag in settings_tag:
@@ -66,6 +68,7 @@ def tag_numbers():
 HISTORY = []
 OFFSIDE_NUMBER = 1
 
+
 def to_file(players, ball, is_offside):
     global OFFSIDE_NUMBER
     global HISTORY
@@ -75,11 +78,11 @@ def to_file(players, ball, is_offside):
             st += str(player.player_id) + "," + str(tag_id) + "," + str(tag.location.x) + "," + str(
                 tag.location.y) + "," + \
                   str(tag.location.z) + "," + str(player.is_offside_alert) + "\n"
-    #st += "-2, BTAG," + str(ball.location.x) + "," + str(ball.location.y) + "," + str(ball.location.z) + "," + "False\n"
+    # st += "-2, BTAG," + str(ball.location.x) + "," + str(ball.location.y) + "," + str(ball.location.z) + "," + "False\n"
     HISTORY.append(st)
     if len(HISTORY) > 50:
         HISTORY.pop(0)
     if is_offside:
-        writer = open("render/last_offside"+str(OFFSIDE_NUMBER)+".txt", "w")
+        writer = open("render/last_offside" + str(OFFSIDE_NUMBER) + ".txt", "w")
         OFFSIDE_NUMBER += 1
         [writer.write(hist) for hist in HISTORY]
